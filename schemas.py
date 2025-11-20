@@ -1,48 +1,73 @@
 """
-Database Schemas
+Database Schemas for Lulu Recipe Hub
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model represents a MongoDB collection. Collection name is the
+lowercase of the class name by convention in this project helper.
 """
-
+from __future__ import annotations
+from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
-from typing import Optional
 
-# Example schemas (replace with your own):
 
-class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+class Ingredient(BaseModel):
+    name: str = Field(..., description="Ingredient name")
+    image: Optional[str] = Field(None, description="Image URL for ingredient")
+    unit: Optional[str] = Field(None, description="Unit such as g, ml, cup")
+    substitutions: List[str] = Field(default_factory=list, description="Alternative ingredients")
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
 
-# Add your own schemas here:
-# --------------------------------------------------
+class RecipeIngredient(BaseModel):
+    name: str
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
+    image: Optional[str] = None
+    substitutions: List[str] = Field(default_factory=list)
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+
+class Recipe(BaseModel):
+    title: str
+    description: str
+    image: Optional[str] = None
+    prep_time_min: int = Field(ge=0, description="Preparation time in minutes")
+    age_range: str = Field(..., description="Recommended age range, e.g., '6-9 months'")
+    ingredients: List[RecipeIngredient]
+    steps: List[str]
+    tags: List[str] = Field(default_factory=list)
+
+
+class Review(BaseModel):
+    recipe_id: str
+    rating: int = Field(..., ge=1, le=5)
+    note: Optional[str] = None
+
+
+class PantryItem(BaseModel):
+    name: str
+    quantity: float = 1
+    unit: Optional[str] = None
+    image: Optional[str] = None
+
+
+class MealSlot(BaseModel):
+    breakfast: Optional[str] = None  # recipe_id
+    lunch: Optional[str] = None
+    dinner: Optional[str] = None
+
+
+class MealPlan(BaseModel):
+    week_start: str = Field(..., description="ISO date string (Monday)")
+    days: Dict[str, MealSlot]  # keys: Mon-Sun
+
+
+class ShoppingItem(BaseModel):
+    name: str
+    quantity: float = 1
+    unit: Optional[str] = None
+    purchased: bool = False
+
+
+class Reminder(BaseModel):
+    title: str
+    due_at: str  # ISO datetime string
+    type: str = Field("meal", description="meal | shopping | other")
+    notes: Optional[str] = None
